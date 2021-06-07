@@ -175,55 +175,56 @@ CREATE TABLE TBL_CASE_1_2 as
 
 -- Case 2.1
 
-CREATE STREAM CLIENT_POL_MASTER_case2 as
-  SELECT p.client_cd, m.type, m.role, m.surname, m.first_name, m.other_name, m.sex, m.id_no, m.dob, p.efd, m.opt_out, m.entry_dt
+CREATE STREAM STM_CASE_2_1 as
+  SELECT p.client_cd client_cd, /*m.type, m.role, m.surname, m.first_name, m.other_name, m.sex, m.id_no, m.dob, */p.efd, /*m.opt_out, */m.entry_dt
   FROM pol_person_hdr p
   LEFT JOIN cdb_mast m WITHIN 7 DAYS
-  ON m.client_cd = p.client_cd
-  WHERE p.podium_iud = 'I' or p.podium_iud = 'U'
-  PARTITION BY p.client_cd;
+  ON m.client_cd_k = p.client_cd
+  WHERE p.podium_iud = 'I' or p.podium_iud = 'U';
+  --PARTITION BY p.client_cd;
 
-CREATE TABLE client_pol_master_case2_table as
-  SELECT p_client_cd client_cd, latest_by_offset(m.type) type, latest_by_offset(m.role) role, latest_by_offset(m.surname) surname,
+CREATE TABLE TBL_CASE_2_1 as
+  SELECT client_cd, /*latest_by_offset(m.type) type, latest_by_offset(m.role) role, latest_by_offset(m.surname) surname,
   latest_by_offset(m.first_name) first_name, latest_by_offset(m.other_name) other_name, latest_by_offset(m.id_no) id_no,
-  latest_by_offset(m.sex) sex, latest_by_offset(m.dob) dob, latest_by_offset(m.efd) efd, latest_by_offset(m.opt_out) opt_out,
-  latest_by_offset(m.entry_dt) Last_Update_dt
-  FROM CLIENT_POL_MASTER_case2 m
-  GROUP BY m.p_client_cd;
+  latest_by_offset(m.sex) sex, latest_by_offset(m.dob) dob, */latest_by_offset(efd) efd, /*latest_by_offset(m.opt_out) opt_out,
+  */latest_by_offset(entry_dt) Last_Update_dt
+  FROM STM_CASE_2_1
+  GROUP BY client_cd;
 
 -- Case 2.2
 
-CREATE STREAM CLIENT_OPT_OUT_case2 as
-  SELECT m.client_cd, m.type, m.cdb_mast_sta, m.birth_place, p.efd, m.sex, m.opt_out, m.entry_dt
+CREATE STREAM STM_CASE_2_2 as
+  SELECT p.client_cd client_cd, /*m.type, m.cdb_mast_sta, m.birth_place, */p.efd, /*m.sex, m.opt_out, */m.entry_dt
   FROM pol_person_hdr p
   LEFT JOIN cdb_mast m WITHIN 7 DAYS
-  ON m.client_cd = p.client_cd
+  ON m.client_cd_k = p.client_cd
   WHERE p.podium_iud = 'I' or p.podium_iud = 'U';
 
-CREATE TABLE client_opt_out_case2_table as
-  SELECT m_client_cd, latest_by_offset(type) type, latest_by_offset(cdb_mast_sta) cdb_mast_sta,
-  latest_by_offset(birth_place) birth_place, latest_by_offset(efd) efd, latest_by_offset(opt_out) opt_out,
-  latest_by_offset(sex) gender, latest_by_offset(entry_dt) Last_Update_dt
-    FROM client_opt_out_case2
-    GROUP BY m_client_cd;
+CREATE TABLE TBL_CASE_2_2 as
+  SELECT client_cd, /*latest_by_offset(type) type, latest_by_offset(cdb_mast_sta) cdb_mast_sta,
+  latest_by_offset(birth_place) birth_place, */latest_by_offset(efd) efd, /*latest_by_offset(opt_out) opt_out,
+  latest_by_offset(sex) gender, */latest_by_offset(entry_dt) Last_Update_dt
+    FROM STM_CASE_2_2
+    GROUP BY client_cd;
 
 -- Case 3
 
-CREATE STREAM CLIENT_OPT_OUT_case3 as
-  SELECT m.client_cd, m.type, m.cdb_mast_sta, m.birth_place, p.efd, g.long_form gender, m.opt_out, m.entry_dt
+CREATE STREAM STM_CASE_3 as
+  SELECT m.client_cd client_cd, /*m.type, m.cdb_mast_sta, m.birth_place, p.efd, */g.long_form gender, /*m.opt_out, */m.entry_dt
   FROM cdb_mast m
   LEFT JOIN gender_table g
   ON m.sex = g.sex_code
-  LEFT JOIN pol_person_hdr p WITHIN 7 DAYS
-  ON m.client_cd = p.client_cd
-  WHERE m.podium_iud = 'I' or m.podium_iud = 'U';
+  /*LEFT JOIN pol_person_hdr p WITHIN 7 DAYS
+  ON m.client_cd = p.client_cd*/
+  WHERE m.podium_iud = 'I' or m.podium_iud = 'U'
+  PARTITION BY m.client_cd;
 
-CREATE TABLE client_opt_out_table_case3 as
-  SELECT m_client_cd, latest_by_offset(type) type, latest_by_offset(cdb_mast_sta) cdb_mast_sta,
+CREATE TABLE TBL_CASE_3 as
+  SELECT client_cd, /*latest_by_offset(type) type, latest_by_offset(cdb_mast_sta) cdb_mast_sta,
   latest_by_offset(birth_place) birth_place, latest_by_offset(efd) efd, latest_by_offset(opt_out) opt_out,
-  latest_by_offset(gender) gender, latest_by_offset(entry_dt) Last_Update_dt
-    FROM client_opt_out_case3
-    GROUP BY m_client_cd;
+  */latest_by_offset(gender) gender, latest_by_offset(entry_dt) Last_Update_dt
+    FROM STM_CASE_3
+    GROUP BY client_cd;
 
 -- Case 4.1
 
@@ -274,16 +275,3 @@ CREATE TABLE target_sex_joined_table_3 as
   latest_by_offset(entry_dt) entry_dt
     FROM target_sex_joined_3
     GROUP BY client_cd;
-
-
-
-
-
-
-
-
-
-
-
-
-
