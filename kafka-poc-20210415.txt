@@ -1,0 +1,208 @@
+Source Schema:
+
+Table: cdb_mast (infomix)
+-client_cd
+-type
+-cdb_mast_sta
+-role
+-surname
+-first_name
+-other_name
+-id_no
+-sex
+-dob
+-birth_place
+-smk_sta
+-occ_cd
+-ann_salary
+-height
+-height_uom
+-weight
+-weight_uom
+-ntu
+-supp_ind
+-sl_no
+-entry_dt
+-entry_by
+-opt_out
+-podium_iud
+
+----------------------------
+Table: pol_person_hdr (infomix)
+pol_no
+client_role
+client_cd
+efd
+relation
+split
+category
+priority
+production_type
+addr_no
+-podium_iud
+
+----------------------------
+Table: cdb_misc (infomix)
+client_cd
+misc_type
+misc_cd
+last_upd_dt
+last_upd_usr
+-podium_iud
+
+----------------------------
+Table: gender(kafka only for enrichment)
+sex
+details: {
+  long_form
+}
+
+e.g
+{
+  sex: 'M',
+  details: {
+    long_form: 'Male'
+  }
+},
+{
+  sex: 'F',
+  details: {
+    long_form: 'Female'
+  }
+},
+{
+  sex: '',
+  details: {
+    long_form: 'N/A'
+  }
+}
+
+----------------------------
+
+
+
+
+===============================
+Target Schema: (Cosmos DB)
+Table: client_pol_master
+-client_cd
+-type
+-role
+-surname
+-first_name
+-other_name
+-id_no
+-sex
+-dob
+-efd
+-opt_out
+-Last Update Date
+
+Table: client_opt_out
+-client_cd
+-type
+-cdb_mast_sta
+-birth_place
+-efd
+-opt_out
+-gender
+-Last Update Date
+
+Table: target_sex_joined_table (filtered sex is 'M')
+-client_cd
+-surname
+-first_name
+-other_name
+-pol_no
+-efd
+-sex
+-Last Update Date
+
+===========================
+Case 1 : 
+
+Update client_pol_master
+-surname
+-first_name
+-other_name
+-opt_out
+-Last Update Date
+
+when cdb_mast is inserted/updated
+
+
+Update client_opt_out
+
+-opt_out
+-Last Update Date
+
+when cdb_misc is inserted/updated
+
+
+Case 2: 
+
+Update client_pol_master
+-efd
+-Last Update Date
+
+Update client_opt_out
+
+-efd
+-Last Update Date
+
+when pol_person_hdr is inserted/updated
+
+
+Case 3:
+
+Update client_opt_out
+
+-gender (ref gender.details.long_form)
+-Last Update Date
+
+when cdb_mast is inserted/updated, join gender.sex by using cdb_mast.sex
+
+Case 4 - targeted male person:
+
+Update target_sex_joined_table
+
+-first_name
+-Last Update Date
+
+when rows with cdb_mast.sex is updated(should filter cdb_mast.sex is 'M' in ksql)
+
+-efd
+-Last Update Date
+
+when pol_person_hdr is updated
+
+-client_cd
+-surname
+-first_name
+-other_name
+-pol_no
+-efd
+-Last Update Date
+
+when new row of pol_person_hdr is inserted(should filter cdb_mast.sex is 'M' in ksql)
+
+=======================
+
+
+Non-functional requirement:
+	1. Resiliency
+		a. Node/Producer/Consumer Error, Process to recover (Kill Pod)
+		
+	2. Performance
+		a. SLA guarantee under what circumstances(Whitepaper)
+		
+  3. Monitoring 
+    a. logging
+    b. performance monitoring, e.g. records consumed rate & records consumed total
+
+  4. Security 
+    a. authentication and authorization design
+
+  5. Scalability
+    a. increase/decrease number of broker
+    b. increase/decrease storage of logging
